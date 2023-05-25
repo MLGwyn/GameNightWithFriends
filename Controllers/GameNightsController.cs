@@ -36,7 +36,7 @@ namespace GameNightWithFriends.Controllers
         {
             // Uses the database context in `_context` to request all of the GameNights, sort
             // them by row id and return them as a JSON array.
-            return await _context.GameNights.OrderBy(row => row.Id).ToListAsync();
+            return await _context.GameNights.OrderBy(row => row.Id).Include(GameNight => GameNight.Players).ToListAsync();
         }
 
         // GET: api/GameNights/5
@@ -171,6 +171,26 @@ namespace GameNightWithFriends.Controllers
 
             // Return a copy of the deleted data
             return Ok(gameNight);
+        }
+
+        [HttpPost("{id}/Players")]
+        public async Task<ActionResult<Player>> CreatePlayerForGameNight(int id, Player player)
+        {
+            // First, let's find the game night (by using the ID)
+            var gameNight = await _context.GameNights.FindAsync(id);
+            // If the game night doesn't exist: return a 404 Not found.
+            if (gameNight == null)
+            {
+                // Return a `404` response to the client indicating we could not find a game night with this id
+                return NotFound();
+            }
+            // Associate the player to the given game night.
+            player.GameNightId = gameNight.Id;
+            // Add the player to the database
+            _context.Players.Add(player);
+            await _context.SaveChangesAsync();
+            // Return the new player to the response of the API
+            return Ok(player);
         }
 
         // Private helper method that looks up an existing gameNight by the supplied id
